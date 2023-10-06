@@ -1,0 +1,500 @@
+---
+title: "Lista de Exercícios 1 - Curso II"
+author: "Luiz Almeida"
+date: "2023-10-04"
+output:
+  html_document:
+    toc: true
+    theme: cerulean
+    number_sections: true
+    toc_float:
+      collapsed: true
+---
+
+```{r setup, include=FALSE}
+# Configuração
+library(emmeans)   # Cálculo de médias estimadas após análises estatísticas.
+library(lme4)      # Ajuste de modelos lineares mistos.
+library(nlme)      # Ajuste de modelos mistos não lineares.
+library(flexplot)  # Criação de gráficos flexíveis e personalizados.
+library(foreign)   # Importação/exportação de dados de outros formatos.
+library(tidyr)     # Manipulação de dados.
+library(dplyr)     # Manipulação e transformação de dados de maneira eficiente.
+library(multcomp)  # Correção de múltiplas comparações pós-teste.
+library(effects)   # Visualização de efeitos de modelos estatísticos.
+library(sjstats)   # Estatísticas descritivas e sumarização de modelos.
+library(tm)        # Análise de texto e mineração de texto.
+library(car)       # Análise de regressão e diagnóstico de regressão.
+library(pwr)       # Cálculo do poder estatístico em estudos de amostragem.
+library(rstatix)   # Análise estatística simplificada.
+library(geepack)   # Ajuste de modelos de equações de estimação generalizadas.
+library(htmltools) # Ferramentas para trabalhar com HTML.
+library(mime)      # Ferramentas para manipulação de tipos MIME.
+
+```
+
+# Introdução
+
+Tutorial produzido com base nas aulas da disciplina "[Estatística Aplicada a Psicobiologia II - 2023](https://www.youtube.com/watch?v=IsrBkJKcLwo&list=PLZjaOxYREinv_M_2nc-BIwptMbfIFipQj&pp=iAQB)", ministrada pelo Professor Altay Lino de Souza e oferecida pelo Departamento de Psicobiologia da UNIFESP.
+
+## Sobre as aulas
+
+As aulas são gravadas e disponibilizadas gratuitamente por meio de lives no canal [Cientística & Podcast Naruhodo](www.youtube.com/cientistica) do YouTube. Destacando aqui o agradecimento mais do que especial para a Maria Lucia Oliveira De Souza Formigoni, por tornar possível a disciplina.
+
+## Sobre o tutorial
+
+Este tutorial tem como objetivo oferecer uma introdução prática à análise estatística de dados no R, utilizando o conjunto de dados "new drug respiratory&pulse" como exemplo. O público-alvo abrange estudantes de [Estatística Aplicada a Psicobiologia II](https://www.youtube.com/watch?v=IsrBkJKcLwo&list=PLZjaOxYREinv_M_2nc-BIwptMbfIFipQj&pp=iAQB), pesquisadores e profissionais de estatística, psicobiologia ou áreas relacionadas que buscam aprimorar suas habilidades em análise de dados. É recomendado ter conhecimento básico em estatística, particularmente [Estatística Aplicada a Psicobiologia I](https://www.youtube.com/watch?v=mh9S1-pEjN4&list=PLZjaOxYREintQo6U6Mr6PKQ5dIWfEP3n7&pp=iAQB), e alguma familiaridade com o ambiente R para acompanhar este tutorial. Ao longo do tutorial, abordaremos a transformação de dados, testes de esfericidade, modelos lineares de medidas repetidas (GLE e LE), Generalized Estimating Equations (GEE) e Generalized Mixed Models (GMM), fornecendo uma compreensão completa dos princípios estatísticos subjacentes.
+
+Você vai precisar do R e do Rstudio!
+
+[Download do R](https://cran.r-project.org/bin/windows/base/)\
+[Download do Rstudio](https://posit.co/downloads/)
+
+Depois de tudo instalado e sem mais delongas, vamos resolver os exercícios da **Lista 1!**
+
+# Boas práticas
+
+Criar um projeto separado para cada projeto no R é uma prática recomendada porque mantém o ambiente organizado, evita conflitos entre projetos, facilita a colaboração, e torna a reprodução e compartilhamento de trabalho mais eficientes.
+
+## Criando o projeto e alocando os arquivos
+
+Para criar um novo projeto no R, siga estes passos simples:
+
+1.  Abra o RStudio ou o ambiente R de sua preferência.
+
+2.  Vá até a guia "File" (Arquivo) e selecione "New Project" (Novo Projeto).
+
+3.  Escolha um diretório para o seu projeto, onde todas as pastas e arquivos relacionados a ele serão armazenados. Isso ajudará na organização.
+
+4.  Clique em "Create Project" (Criar Projeto).
+
+5.  Agora, você terá um novo projeto configurado. Qualquer arquivo que você deseje usar para o tutorial deve ser colocado dentro da pasta desse projeto. Isso garantirá que todos os caminhos e referências aos arquivos sejam relativos ao diretório do projeto, facilitando a portabilidade e compartilhamento do tutorial.
+
+Com esses passos, você terá um ambiente de projeto limpo e organizado para trabalhar com seus arquivos e conduzir seu tutorial no R.
+
+# Banco de dados, script e Lista 1
+
+Faça o download do arquivo compactado abaixo.
+
+```{r arquivos, echo=FALSE}
+# multiple files
+xfun::embed_files(c('lista1_parcial.R', 'bd_New drug_respiratory&pulse.sav', 'Lista de exercícios 1 (CURSO II).docx'))
+
+```
+
+Lembre-se de descompactar os três arquivos na **mesma pasta do projeto** que você acabou de criar!
+
+O arquivo compactado contém:
+
+1.  `bd_New drug_respiratory&pulse.sav`: Este é o arquivo de banco de dados que será usado ao longo do tutorial. Ele contém os dados que serão analisados e explorados durante os exercícios.
+
+2.  `lista1_parcial.R`: Este arquivo .R contém o script parcialmente preenchido, projetado para ajudá-lo a praticar e estudar os códigos abordados no tutorial. Você pode usar este script como um guia interativo para aprender e executar análises estatísticas no R.
+
+3.  A `"Lista de Exercícios 1"` é parte do tutorial e prática relacionados ao conjunto de dados "new drug respiratory&pulse". O objetivo principal desta lista de exercícios é proporcionar uma compreensão prática de como realizar testes estatísticos no software R. Esta lista contém três exercícios distintos:
+
+    a)  Verificar o efeito do tempo e do grupo (new drug x placebo) sobre os níveis respiratório e de pulso dos pacientes usando um GLM de medidas repetidas e documentar apenas as tabelas mais relevantes da análise.
+
+    b)  Verificar o efeito do tempo e do grupo (new drug x placebo) sobre os níveis respiratório e de pulso dos pacientes usando Generalized Estimating Equations (GEE) e documentar apenas as tabelas mais relevantes da análise. Também é necessário realizar a transposição do banco de dados (Data, Restructure).
+
+    c)  Verificar o efeito do tempo e do grupo (new drug x placebo) sobre os níveis respiratório e de pulso dos pacientes usando General Mixed Models (GMM) e documentar apenas as tabelas mais relevantes da análise. Também é necessário realizar a transposição do banco de dados (Data, Restructure).
+
+# Carregando os Dados
+
+Vamos começar carregando o conjunto de dados original e realizando algumas transformações para tornar possível nossas análises.
+
+```{r carrega_dados, echo=TRUE}
+# Carregando os dados originais
+original_wide = read.spss("bd_New drug_respiratory&pulse.sav", to.data.frame=TRUE)
+head(original_wide)
+```
+
+O código fornecido tem como objetivo carregar um conjunto de dados a partir de um arquivo SPSS chamado "bd_New drug_respiratory&pulse.sav" e exibir as primeiras linhas desse conjunto de dados.
+
+1.  `original_wide = read.spss("bd_New drug_respiratory&pulse.sav", to.data.frame=TRUE)`: Esta linha de código utiliza a função `read.spss` para ler o arquivo SPSS "bd_New drug_respiratory&pulse.sav" e convertê-lo em um objeto de data frame do R. A opção `to.data.frame=TRUE` especifica que queremos que os dados sejam armazenados em um data frame.
+
+2.  `head(original_wide)`: Após a leitura do conjunto de dados, esta linha de código utiliza a função `head` para mostrar as primeiras linhas do data frame `original_wide`. Isso ajuda a visualizar rapidamente os dados e verificar sua estrutura.
+
+# Transformando o Banco de Dados de Wide para Long
+
+Para tornar possível algumas análises, precisamos transformar o banco de dados de formato "wide" para "long". Isso nos permitirá realizar análises de medidas repetidas.
+
+```{r rename, echo=TRUE}
+# Renomeando colunas
+bd <- original_wide %>%
+  rename_with(~gsub("(resp|pulse)(\\d+)", "\\1_\\2", .), -drug) %>% 
+  mutate(ID = row_number()) %>%
+  dplyr::select(ID, everything())
+
+head(bd)
+```
+
+Os códigos fornecidos têm como objetivo renomear colunas e transformar um conjunto de dados de formato "wide" para "long", onde uma expressão regular está sendo utilizada para facilitar esse processo.
+
+Uma expressão regular, ou regex, é uma sequência de caracteres que define um padrão de busca em texto, permitindo operações avançadas de busca e manipulação. Elas são amplamente usadas na programação para validação, extração e transformação de dados em texto.
+
+No primeiro trecho de código, estamos renomeando as colunas do conjunto de dados `original_wide`. Aqui, a expressão regular `(resp|pulse)(\\d+)` está sendo usada na função `gsub`. Vamos explicar essa expressão regular:
+
+-   `(resp|pulse)`: Isso corresponde à palavra "resp" OU "pulse". O operador `|` atua como uma escolha, permitindo que corresponda a uma das duas palavras.
+
+-   `(\\d+)`: Isso corresponde a um ou mais dígitos numéricos. O `\\d+` é usado para extrair os números que seguem "resp" ou "pulse".
+
+A expressão regular `(resp|pulse)(\\d+)` funciona para identificar colunas com nomes como "resp1", "resp2", "pulse1", "pulse2" etc. A função `gsub` substitui esses nomes de colunas por um novo formato, onde mantém "resp" ou "pulse" e adiciona o número correspondente. Por exemplo, "resp1" será renomeado para "resp_1", "pulse2" será renomeado para "pulse_2" e assim por diante.
+
+Isso é útil para o próximo passo porque torna mais fácil identificar e separar os dados de resp e pulse em diferentes colunas. Além disso, os números extraídos da expressão regular serão usados para criar a variável "Tempo", que indicará as medidas repetidas ao longo do tempo.
+
+```{r pivot, echo=TRUE}
+# Transformando em formato long
+bd_long = pivot_longer(
+  bd,
+  cols = resp_1:pulse_3,
+  names_to = c(".value", "Tempo"),
+  names_pattern = "(.+)_(.+)")
+
+head(bd_long)
+```
+
+No segundo trecho de código, estamos usando a função `pivot_longer` para transformar o conjunto de dados `bd` de formato "wide" para "long". A opção `names_pattern` usa a expressão regular `(.)_(.)` para dividir os nomes das colunas em duas partes:
+
+-   `(.+)`: Isso corresponde a qualquer sequência de caracteres, representando os nomes originais das colunas.
+
+-   `_(.+)`: Isso corresponde ao caractere sublinhado "\_" seguido de qualquer sequência de caracteres. Essa parte será usada para identificar os valores correspondentes nas colunas no formato "long".
+
+Portanto, a expressão regular `(.)_(.)` ajuda a extrair informações dos nomes das colunas originais e organizá-las adequadamente no formato "long" do conjunto de dados `bd_long`, onde a primeira parte é armazenada na coluna `"Tempo"` e a segunda parte é usada para identificar os valores correspondentes na coluna `"valor"` (geralmente representada como `.value` no R).
+
+# Alterando o tipo da variável "Tempo"
+
+```{r}
+# Suponha que sua variável "Tempo" esteja em um dataframe chamado "seu_data_frame"
+bd_long$Tempo <- factor(bd_long$Tempo)
+
+```
+
+O código assume que a variável `"Tempo"` está no dataframe chamado `"bd_long"`. Ele usa a função `factor()` para converter a variável "Tempo" em uma variável categórica. A conversão para uma variável categórica é útil quando você deseja tratar "Tempo" como uma variável de fator com níveis distintos em vez de uma variável numérica contínua. Essa transformação pode ser útil em análises estatísticas que envolvam categorias ou grupos de tempo, como em modelos de medidas repetidas.
+
+# Pressupostos
+
+## Esfericidade da Variável "Pulse"
+
+Vamos verificar a esfericidade da variável "pulse" usando o teste de Mauchly.
+
+```{r pulse_mauchly, echo=TRUE}
+pulse_mauchly = anova_test(data = bd_long, dv = pulse, wid = ID, within = Tempo)
+pulse_mauchly
+
+```
+
+Os códigos fornecidos têm como objetivo realizar um teste de Mauchly para verificar a esfericidade da variável "pulse" em um conjunto de dados no formato longo (`bd_long`). Vamos explicar o que cada linha de código faz:
+
+1.  `pulse_mauchly = anova_test(data = bd_long, dv = pulse, wid = ID, within = Tempo)`: Esta linha de código executa o teste de Mauchly para verificar a esfericidade da variável "pulse". A função `anova_test` é usada para realizar esse teste. Os argumentos passados para a função são:
+
+    -   `data`: O conjunto de dados no formato longo (`bd_long`), onde os dados estão organizados em formato apropriado para análises de medidas repetidas.
+
+    -   `dv`: A variável dependente sendo analisada, que neste caso é "pulse".
+
+    -   `wid`: A variável de identificação única (`ID`), que indica quais observações pertencem ao mesmo sujeito.
+
+    -   `within`: A variável categórica que representa o fator dentro dos sujeitos, neste caso, "Tempo".
+
+2.  `pulse_mauchly`: Esta linha de código armazena os resultados do teste de Mauchly na variável `pulse_mauchly`. Os resultados incluem estatísticas relacionadas à esfericidade e os valores associados (valor-p).
+
+O teste de Mauchly é comumente usado para verificar se a suposição de esfericidade das variâncias das diferenças entre todas as combinações de condições relacionadas (ou níveis de grupo) é atendida. O valor-p resultante do teste de Mauchly indica se a esfericidade é satisfeita. Se o valor-p for maior que um nível de significância escolhido (geralmente 0,05), a esfericidade é considerada como cumprida, o que significa que não é necessário realizar correções nos resultados das análises de medidas repetidas. No entanto, se o valor-p for menor que o nível de significância, a esfericidade é violada, e correções, como a correção de Greenhouse-Geisser ou Huynh-Feldt, podem ser aplicadas para lidar com a violação da esfericidade.
+
+## Esfericidade da Variável "Resp"
+
+Da mesma forma, vamos verificar a esfericidade da variável "resp" usando o teste de Mauchly.
+
+```{r resp_mauchly, echo=TRUE}
+resp_mauchly = anova_test(data = bd_long, dv = resp, wid = ID, within = Tempo)
+resp_mauchly
+
+```
+
+*Falta realizar a correção greenhouse e explicar*
+
+# GLM
+
+**Descrição do General Linear Model (GLM) para Medidas Repetidas:**\
+O GLM para medidas repetidas é uma técnica estatística que permite analisar dados em que as mesmas unidades (sujeitos ou grupos) são medidas em várias ocasiões ou sob diferentes condições. Ele é usado para investigar como as mudanças nas variáveis dependentes são afetadas por fatores independentes, levando em consideração a estrutura repetida dos dados.
+
+**Pressupostos do GLM para Medidas Repetidas:**\
+Os pressupostos comuns do GLM para medidas repetidas incluem:
+
+1.  Esfericidade: Assume-se que a matriz de variância-covariância das diferenças entre os níveis de um fator (ou condição) seja aproximadamente igual, o que é chamado de "esfericidade." A falta de esfericidade pode afetar os resultados.
+
+2.  Normalidade dos resíduos: Como em muitas análises estatísticas, assume-se que os resíduos seguem uma distribuição normal.
+
+3.  Linearidade: A relação entre as variáveis independentes e dependentes deve ser linear.
+
+**Vantagens do GLM para Medidas Repetidas:**
+
+-   Leva em consideração a estrutura repetida dos dados: Esse modelo é especialmente útil quando você tem medidas repetidas dentro dos mesmos sujeitos ou grupos.
+
+-   Permite investigar efeitos ao longo do tempo ou condições: É adequado para estudar como as mudanças em uma variável dependente são afetadas por fatores independentes em várias ocasiões ou condições.
+
+-   Pode incluir fatores interativos: É possível analisar interações entre fatores em um design experimental de medidas repetidas.
+
+**Desvantagens do GLM para Medidas Repetidas:**
+
+-   Sensibilidade à violação da sphericity: A falta de sphericity pode levar a resultados imprecisos, e correções como a correção de Greenhouse-Geisser podem ser necessárias.
+
+-   Complexidade da interpretação: Em designs com muitos níveis de fatores ou interações, a interpretação dos resultados pode se tornar complexa.
+
+-   Requer planejamento cuidadoso: A coleta de dados em um design de medidas repetidas requer planejamento cuidadoso e consideração dos efeitos de confusão.
+
+**Situações em que usar o GLM para Medidas Repetidas:**
+
+-   Experimentos com medidas repetidas: É apropriado para análise de experimentos onde as mesmas unidades são medidas em várias ocasiões ou sob diferentes condições.
+
+-   Estudos longitudinais: É útil para analisar dados longitudinais em que as mesmas medidas são coletadas em intervalos de tempo diferentes.
+
+-   Avaliação de tratamentos ou intervenções ao longo do tempo: Permite avaliar como um tratamento ou intervenção afeta as mudanças nas variáveis dependentes ao longo do tempo.
+
+O GLM para medidas repetidas é uma ferramenta poderosa para análise de dados com estrutura repetida, mas requer atenção aos pressupostos e planejamento adequado para a coleta de dados. É amplamente utilizado em pesquisas nas áreas de psicologia, medicina, ciências sociais e outras disciplinas onde medidas repetidas são comuns.
+
+## Principais vantagens do GLM de medidas repetidas em comparação com a ANOVA:
+
+1.  **Modelagem flexível:** O GLM permite modelar e analisar experimentos com medidas repetidas de forma mais flexível. Você pode incluir múltiplos fatores independentes (variáveis independentes) em um único modelo e estudar suas interações, o que é especialmente útil em experimentos complexos.
+
+2.  **Tratamento de dados desequilibrados:** O GLM pode lidar eficazmente com desequilíbrio nas amostras ou tamanhos diferentes de grupos, o que é comum em experimentos do mundo real. A ANOVA tradicional é mais sensível a desequilíbrio.
+
+3.  **Modelagem de covariáveis:** O GLM permite incorporar covariáveis (variáveis de controle) em sua análise para controlar o efeito de variáveis que não são o foco principal do estudo. Isso melhora a precisão das estimativas dos efeitos de interesse.
+
+4.  **Correções para violações de pressupostos:** Quando os pressupostos da ANOVA, como a homogeneidade de variâncias ou normalidade dos resíduos, são violados, o GLM oferece opções para corrigir ou lidar com essas violações, tornando os resultados mais robustos.
+
+5.  **Modelagem de medidas contínuas e categóricas:** O GLM pode acomodar variáveis dependentes contínuas e categóricas (nominais ou ordinais), o que é útil em situações em que a variável dependente é de natureza diferente.
+
+6.  **Maior poder estatístico:** O GLM pode ser mais poderoso do que a ANOVA em situações em que as medidas repetidas têm alta correlação entre si, permitindo detectar diferenças significativas mesmo com tamanhos de amostra menores.
+
+7.  **Análise de interações complexas:** O GLM é especialmente eficaz na análise de interações complexas entre fatores independentes em designs experimentais com medidas repetidas, o que é difícil de realizar com a ANOVA.
+
+## Análise para a Variável "resp"
+
+Vamos ajustar o seguinte modelo de medidas repetidas para a variável dependente "resp":
+
+$$
+resp = \beta_0 + \beta_1drug + \beta_2Tempo + \beta_3drug*Tempo + \varepsilon
+$$
+
+```{r lm_resp, echo=TRUE}
+# Ajustando o modelo
+modelo1_resp = lm(resp ~ drug + Tempo + drug*Tempo, data = bd_long)
+summary(modelo1_resp)
+```
+
+Como houve diferença apenas entre os grupos que receberam a droga e o placebo, não vamos realizar o post hoc
+
+### Histograma dos resíduos do modelo lm(resp)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r error_lm_resp, echo=TRUE, message=FALSE, warning=FALSE}
+visualize(modelo1_resp, plot = "residuals")
+```
+
+O código `visualize(modelo1_resp, plot = "residuals")` utiliza a função `visualize` do pacote `flexplot` para criar um gráfico de visualização dos resíduos do modelo estatístico denominado `modelo1_resp`. Esse gráfico permite avaliar a distribuição e padrões dos resíduos, ajudando na verificação das suposições do modelo, como homogeneidade de variância e normalidade dos resíduos, o que é fundamental na análise estatística.
+
+### Plot do modelo lm(resp)
+
+Agora vamos fazer um plot do modelo.
+
+```{r plot_lm_resp}
+visualize(modelo1_resp, plot = "model")
+```
+
+O código `visualize(modelo1_resp, plot = "model")` usa a função `visualize` do pacote `flexplot` para criar um gráfico que visualiza o modelo estatístico denominado `modelo1_resp`. Este gráfico é uma representação visual do modelo, ajudando a compreender a relação entre as variáveis independentes e a variável dependente no contexto da análise estatística em questão. Isso pode ser útil para a interpretação e compreensão do modelo estatístico.
+
+## Análise para a Variável "pulse"
+
+Agora, ajustaremos o mesmo modelo para a variável dependente "pulse":
+
+$$
+pulse= \beta_0 + \beta_1drug + \beta_2Tempo + \beta_3drug*Tempo + \varepsilon
+$$
+
+```{r glm_pulse, echo=TRUE}
+# Ajustando o modelo
+modelo1_pulse = glm(pulse ~ drug + Tempo + drug*Tempo, data = bd_long)
+summary(modelo1_pulse)
+
+```
+
+*Descrição dos resultados*
+
+### Histograma dos resíduos do modelo lm(pulse)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r error_lm_pulse, echo=TRUE, message=FALSE, warning=FALSE}
+
+visualize(modelo1_pulse, plot = "residuals")
+```
+
+### Plot do modelo lm(pulse)
+
+Agora vamos fazer um plot do modelo.
+
+```{r plot_lm_pulse}
+visualize(modelo1_pulse, plot = "model")
+```
+
+*Descrever resultados*
+
+# GEE
+
+## Análise para a Variável "Resp"
+
+Realizaremos uma análise usando Generalized Estimating Equations (GEE) para a variável "resp".
+
+```{r gee_resp, echo=TRUE}
+# Ajustando o modelo GEE para "resp"
+modelo_gee_resp <- geeglm(resp ~ drug + Tempo + drug*Tempo, 
+                     data = bd_long, 
+                     id = ID, 
+                     family = gaussian, 
+                     corstr = "unstructured")
+
+summary(modelo_gee_resp)
+
+```
+
+### Histograma dos resíduos do modelo GEE (resp)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r}
+#visualize(modelo_gee_resp, plot = "residuals")
+```
+
+### Plot do modelo GEE (resp)
+
+Agora vamos fazer um plot do modelo.
+
+```{r plot_gee_resp}
+visualize(modelo_gee_resp, plot = "model")
+```
+
+*Descrever resultados*
+
+## Análise para a Variável "Pulse"
+
+Agora, realizaremos uma análise GEE para a variável "pulse".
+
+```{r gee_pulse, echo=TRUE}
+# Ajustando o modelo GEE para "pulse"
+modelo_gee_pulse <- geeglm(pulse ~ drug + Tempo + drug*Tempo, 
+                     data = bd_long, 
+                     id = ID, 
+                     family = gaussian, 
+                     corstr = "unstructured")
+
+summary(modelo_gee_pulse)
+
+```
+
+### Histograma dos resíduos do modelo GEE (pulse)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r}
+#visualize(modelo_gee_pulse, plot = "residuals")
+```
+
+### Plot do modelo GEE (pulse)
+
+Agora vamos fazer um plot do modelo.
+
+```{r plot_gee_pulse}
+visualize(modelo_gee_pulse, plot = "model")
+```
+
+*Descrever resultados*
+
+# Análise com GMM
+
+## Análise para a Variável "resp"
+
+Agora, realizaremos uma análise usando Generalized Mixed Models (GMM) para a variável "resp".
+
+```{r gmm_resp, echo=TRUE}
+# Ajustando o modelo GMM para "resp"
+modelo_gmm_resp = lme(
+  fixed = resp ~ drug + Tempo + drug * Tempo,
+  random = ~1|ID,
+  data = bd_long
+)
+
+summary(modelo_gmm_resp)
+
+```
+
+### Histograma dos resíduos do modelo GMM (resp)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r}
+# visualize(modelo_gmm_resp, plot = "residuals")`
+```
+
+### Plot do modelo GMM (resp)
+
+Agora vamos fazer um plot do modelo.
+
+```{r}
+#visualize(modelo_gmm_resp_visu, plot = "model")
+
+```
+
+*Descrever resultados*
+
+## Análise para a Variável "Pulse"
+
+Agora, realizaremos uma análise GMM para a variável "pulse".
+
+```{r gmm_pulse, echo=TRUE}
+# Ajustando o modelo GMM para "pulse"
+modelo_gmm_pulse = lme(
+  fixed = pulse ~ drug + Tempo + drug * Tempo,
+  random = ~1|ID,
+  data = bd_long
+)
+
+summary(modelo_gmm_pulse)
+
+```
+
+### Histograma dos resíduos do modelo GMM (pulse)
+
+Agora vamos fazer um plot do histograma dos resíduos do modelo
+
+```{r}
+#visualize(modelo_gmm_pulse, plot = "residuals")`
+```
+
+### Plot do modelo GMM (pulse)
+
+Agora vamos fazer um plot do modelo.
+
+```{r}
+#visualize(modelo_gmm_pulse, plot = "model")
+
+```
+
+*Descrever resultados*
+
+# Conclusão
+
+Neste tutorial, exploramos como conduzir análises estatísticas no R utilizando diferentes abordagens, incluindo modelos de medidas repetidas, Generalized Estimating Equations (GEE) e Generalized Mixed Models (GMM). Essas técnicas nos permitem entender melhor o efeito do tempo e do grupo sobre as variáveis "resp" e "pulse" em nosso conjunto de dados.
+
+Lembre-se de que as tabelas e resultados aqui apresentados são apenas parte da análise completa. Você pode aprofundar sua compreensão e realizar análises mais detalhadas conforme necessário.
+
+# Referências
+
+-   [GLM Repeated Measures, GEE, GMM - Aula Prática #1 (SPSS)](https://www.youtube.com/watch?v=_KtjZcaMYhk)
+
+-   [Mauchly's Test of Sphericity in R](https://www.datanovia.com/en/lessons/mauchlys-test-of-sphericity-in-r/)
+
+-   [Pivoting multiple variables: A simpler (more complex?) way](https://www.youtube.com/watch?v=dcWuHcC98EU&t=196s)
+
+-   [Wide to long format part 2 - Pivoting with multivariate data](https://www.youtube.com/watch?v=4-sqsCANxHU)
+
+Este tutorial abordou uma parte da análise de dados estatísticos. Você pode expandir seu conhecimento explorando mais recursos e técnicas estatísticas disponíveis no R.
